@@ -1,6 +1,6 @@
 # TailorPro — IMPLEMENTATION_TRACKER.md
 
-**Status as of Phase 0:** every requirement is **Not Started**. No code exists. "Implementation" entries are **planned** locations, not existing files.
+**Status as of Phase 1, Checkpoint A (2026-11-16):** database foundation built and tested (M1-M3, 100 SQL + 21 HTTP tests). No requirement is yet marked Tested because none has completed its acceptance criteria (UI, sign-in with real Google, staging). Rows not mentioned below are still Not Started. "Implementation" entries for later phases are **planned** locations.
 **Completion rule (CLAUDE.md §3):** a requirement is complete only when implemented, tested, acceptance-verified, security/regression-checked and documented. Nothing is marked Tested or complete in this document without recorded evidence in `TESTING.md`.
 
 **Requirement IDs:** the PRD has none, so I assigned them (`<area>-<n>`). **Source** = PRD section or approved decision letter (Dec. X). Blocked items name the open decision (R-n) in `PHASE0_REVIEW.md`.
@@ -10,18 +10,18 @@
 
 | ID | Requirement | Source | Planned implementation | Test | Status | Notes |
 |---|---|---|---|---|---|---|
-| AUTH-1 | Register, log in, log out, profile | PRD 4.1 | Supabase Auth, `/app/(auth)`, `profiles` | I, E2E | Not Started | |
-| AUTH-2 | Business registration (8 fields), unique workspace ID, MWK | PRD 4.1 | `create_business` function, `businesses`, `business_members` | I, DB | Not Started | |
-| AUTH-3 | Phone OTP primary, optional email (**Revision 2 proposes Google primary + optional email code; phone OTP deferred as a funded upgrade**) | Dec. D | Supabase Auth Google provider; email code via free SMTP; `AuthAdapter` | I, E2E | Not Started | Z-2 **approved** (replaces R-8); pilot tailors must be asked about Google/email access early |
+| AUTH-1 | Register, log in, log out, profile | PRD 4.1 | Supabase Auth, `/app/(auth)`, `profiles` | I, E2E | In Progress | Checkpoint A: auto-created `profiles`, `update_profile` (DB + API tests pass). Sign-in/out and profile UI are Checkpoint B/C. Not complete. |
+| AUTH-2 | Business registration (8 fields), unique workspace ID, MWK | PRD 4.1 | `create_business`, `update_business` (M3), `businesses`, `business_members` | I, DB | In Progress | Checkpoint A: `create_business` implemented and tested (validation, idempotent replay, audit, free plan, MWK). Registration UI is Checkpoint B (B3). Not complete. |
+| AUTH-3 | Phone OTP primary, optional email (**Revision 2 proposes Google primary + optional email code; phone OTP deferred as a funded upgrade**) | Dec. D | Supabase Auth Google provider; email code via free SMTP; `AuthAdapter` | I, E2E | In Progress | Local stack: email one-time-code sign-in verified (ES256 JWT); Google provider redirect verified with dummy client id. **Real Google login NOT tested** (needs owner-created OAuth client). Z-2 approved |
 | AUTH-4 | Account recovery and phone change procedures | Dec. D | Auth flows + `SECURITY.md` §3.4–3.5 | I, SEC | Blocked | R-9 |
-| AUTH-5 | OTP rate limiting, CAPTCHA, country allowlist, spend cap | Dec. D | Supabase limits, Vercel Firewall, CAPTCHA | SEC | Not Started | |
-| TEN-1 | `workspace_id` on all tenant records, composite FKs | PRD 4.2 | Migrations M1–M7 | DB | Not Started | |
-| TEN-2 | RLS on every tenant table (ENABLE + FORCE) | PRD 4.2, 7 | `private.is_member`, policies | SEC, DB | Not Started | |
-| TEN-3 | Membership validated on every API/function call | PRD 4.2, 5.5 | Function checks, route middleware | SEC | Not Started | |
+| AUTH-5 | OTP rate limiting, CAPTCHA, country allowlist, spend cap | Dec. D | Supabase limits, Vercel Firewall, CAPTCHA | SEC | In Progress | Supabase auth rate limits are at defaults and not yet configured or tested (Checkpoint B5). Vercel Firewall no longer applies (Z-1) |
+| TEN-1 | `workspace_id` on all tenant records, composite FKs | PRD 4.2 | Migrations M1–M7 | DB | In Progress | Phase 1 tables only (M1-M3): workspace key on `business_members`, `subscriptions`, `audit_logs`. Composite-FK pattern applies from Phase 2 tenant tables |
+| TEN-2 | RLS on every tenant table (ENABLE + FORCE) | PRD 4.2, 7 | `private.is_member`, policies | SEC, DB | In Progress | M1-M2 tables: ENABLE+FORCE RLS verified by catalog test (13 checks) incl. closed-by-default grants. Applies to later tables as they are added |
+| TEN-3 | Membership validated on every API/function call | PRD 4.2, 5.5 | Function checks, route middleware | SEC | In Progress | All 3 write functions check caller identity and permission themselves (`auth.uid()`, `private.has_permission`); tested via DB and HTTP. Later functions must follow the same pattern |
 | TEN-4 | Storage isolation | PRD 4.2, 4.11 | Private buckets, Storage RLS, signed URLs | SEC | Not Started | |
-| TEN-5 | Platform admin has no automatic access; break-glass is logged | PRD 3.1 | `platform_admins`, aggregate functions, `support_access_grants` | SEC | Not Started | |
-| TEN-6 | Staff permission model enforced server-side from day one | PRD 3.3 | `business_members.permissions`, `has_permission` | SEC, U | Not Started | R-4 approved |
-| TEN-7 | Automated cross-tenant R/W/U/D tests on every table | PRD 4.2, CLAUDE 6 | `/supabase/tests`, CI | SEC | Not Started | |
+| TEN-5 | Platform admin has no automatic access; break-glass is logged | PRD 3.1 | `platform_admins`, aggregate functions, `support_access_grants` | SEC | In Progress | `platform_admins` exists with no grants/policies; test proves an admin reads no tenant data. Break-glass and aggregate functions are Phase 6 |
+| TEN-6 | Staff permission model enforced server-side from day one | PRD 3.3 | `business_members.permissions`, `has_permission` | SEC, U | In Progress | Permission model + `has_permission` tested (staff denied, `settings.manage` granted). Staff invite UI is Phase 6 (R-4) |
+| TEN-7 | Automated cross-tenant R/W/U/D tests on every table | PRD 4.2, CLAUDE 6 | `/supabase/tests`, CI | SEC | In Progress | Phase 1 tables covered: DB tests 100 pass, HTTP isolation tests 21 pass; mutation-checked (weakened grant and policy both caught). Must be extended with every new table |
 
 ## Customers and measurements
 
@@ -100,7 +100,7 @@
 | EXP-1 | Owner data export in usable format | Dec. I | Owner-only export RPC, ZIP of CSV/JSON built in the browser, audit-logged (`export_jobs` deferred, Revision 2) | I, SEC | Not Started | |
 | DEL-1 | Permanent deletion | Dec. I | **Not to be built** until retention policy approved | — | Blocked | Legal review |
 | LEG-1 | Malawi data-protection review documented | PRD 7, CLAUDE 10 | `SECURITY.md` §9 | Review | Not Started | Counsel needed |
-| SEC-1 | Validation, rate limiting, headers, audit logs, redaction | PRD 7 | Middleware, Zod | SEC | Not Started | |
+| SEC-1 | Validation, rate limiting, headers, audit logs, redaction | PRD 7 | Middleware, Zod | SEC | In Progress | Server-side validation in functions tested; audit insert-only tested; redaction of phone in audit diff tested. Rate limiting, headers and log redaction tests pending |
 | I18N-1 | English now; strings separated for Chichewa and French | Dec. K | `/src/i18n` | U, lint | Not Started | |
 | UI-1 | Mobile-first UI, large targets, contrast, nav, quick actions | PRD 9 | Design system | E2E, MAN | Not Started | |
 | PERF-1 | Search < 300 ms, UI < 100 ms, API p95 < 500 ms; measured on mid-range Android | Dec. O, PRD 11 | Perf tests | MAN, Load | Not Started | R-11 device |
@@ -109,8 +109,8 @@
 | ZB-2 | Written confirmation that free plans permit a commercial pilot | Zero-budget constraint | Vendor confirmation on file | Review | Blocked | Z-4 **approved as a gate**; confirmation not yet obtained; no real data until it is |
 | ZB-3 | Portability seams: `current_user_id()`, `AuthAdapter`, `StorageAdapter`, provider-neutral migrations | Zero-budget constraint | `/src/data`, migrations | U, Review | Not Started | |
 | ZB-4 | Upgrade triggers and monitoring of free-tier usage (DB size, storage, requests) | Zero-budget constraint | Usage checks + runbook | Review | Not Started | `ZERO_BUDGET_REVIEW.md` §9 |
-| ZB-5 | Gateway CPU spike (10 ms Worker limit) and rate limiting | Zero-budget constraint | Phase 1 spike | Perf | Not Started | Z-3, risk Z5 |
-| OPS-1 | Three environments, CI, migrations, monitoring, recovery docs | PRD 13 | CI, `DEPLOYMENT.md` | Review | Not Started | |
+| ZB-5 | Gateway CPU spike (10 ms Worker limit) and rate limiting | Zero-budget constraint | Phase 1 spike | Perf | In Progress | Spike done (see `spikes/gateway-cpu`): warm CPU p50 0-1 ms; **cold starts 4-13 ms vs 10 ms limit** (no failures observed). Gateway deferred to Phase 5 (approved D3); re-measure with real code |
+| OPS-1 | Three environments, CI, migrations, monitoring, recovery docs | PRD 13 | CI, `DEPLOYMENT.md` | Review | In Progress | CI workflow written (`.github/workflows/ci.yml`); **not yet executed on GitHub**. Local scripts in `package.json`. Staging environment is Checkpoint C6 |
 | COST-1 | Hosting/auth/SMS cost documentation; **zero-budget target** | Dec. A, D | `ZERO_BUDGET_REVIEW.md` (supersedes `ARCHITECTURE.md` §8) | Review | In Progress | Verified vs assumed limits labelled; awaiting approval |
 | E2E-1 | Ten-step journey (register → collected) | PRD 12 | `/tests/e2e` | E2E | Not Started | |
 | DOC-1 | ARCHITECTURE, DATABASE_SCHEMA (+ERD), SECURITY, SYNC_DESIGN, TRACKER | PRD 14 Phase 0 | This document set | Review | In Progress | Awaiting approval |
@@ -122,4 +122,5 @@
 | PRD.md | Approved, unmodified | Not edited by me |
 | IMPLEMENTATION_TRACKER.md, ARCHITECTURE.md, DATABASE_SCHEMA.md, SECURITY.md, SYNC_DESIGN.md | Draft (Phase 0) | Awaiting review |
 | PHASE0_REVIEW.md | Draft | **Extra**: not in CLAUDE.md's list. Holds the decision register and findings you requested; can be merged or removed after review |
-| TESTING.md, DEPLOYMENT.md, CHANGELOG.md | Not created | Created when there is something real to record (first tests, first deployment config, first completed phase). Empty documents would be meaningless |
+| TESTING.md, CHANGELOG.md | Created at Checkpoint A | Real test results and the first change record exist now. |
+| DEPLOYMENT.md | Not created | Created at Checkpoint C6 with the first staging deployment. Empty documents would be meaningless |

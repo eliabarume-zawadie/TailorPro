@@ -152,3 +152,19 @@ I will not invent a retention period. Permanent deletion is not implemented unti
 
 ## 10. Security test inventory (maps to `IMPLEMENTATION_TRACKER.md`)
 Cross-tenant R/W/U/D on all tables · FK cross-reference · function-level authorization with foreign IDs · sync endpoint foreign IDs · storage cross-tenant · role escalation · admin cannot read tenant tables · break-glass expiry and logging · payment tampering (negative, duplicate, race, edit/delete attempt) · snapshot/revision immutability · OTP rate-limit and CAPTCHA behavior · session revocation · input fuzzing and XSS payloads · rate limiting · secret scan · log redaction tests.
+
+---
+
+## 11. Phase 1 as-built notes (Checkpoint A)
+
+**11.1 Closed-by-default privileges (spike finding, now enforced).** Supabase grants `anon` and `authenticated` ALL privileges (including TRUNCATE) on new `public` tables and EXECUTE on new functions. Migration M1 revokes these as defaults for objects created by `postgres`, and every migration grants explicitly. `supabase/tests/database/00_catalog.test.sql` fails if any table or function is more open than intended, including a probe that creates a new table and function and checks they are closed.
+
+**11.2 AD-1 refinement, needs your confirmation.** `ARCHITECTURE.md` AD-1 says write functions are `SECURITY INVOKER` so RLS still applies, and also that `authenticated` has no write grants on tenant tables. Those two cannot both hold: an invoker function needs table write privileges, and for registration no membership exists yet. As built, the write functions are `SECURITY DEFINER` with an empty `search_path`, and each one performs its own authorization first (caller from `auth.uid()`, then `private.has_permission`), validates input, and writes an audit entry. The intent of AD-1 is preserved (no direct writes, business rules in the database, cross-tenant tests). The cost is that RLS is not a second barrier inside these functions, so every new function needs its own cross-tenant tests. Tell me if you want a different approach.
+
+**11.3 Error mapping.** `28000` not authenticated, `42501` forbidden (HTTP 403), `22023` invalid input (HTTP 400), `PT409` stale version (HTTP 409).
+
+**11.4 Permission keys defined so far.** `settings.manage` (update business), `members.manage` (list members), `audit.view` (read audit log). Owners hold all; staff only the keys set to `true` in `business_members.permissions`.
+
+**11.5 Reference data visibility.** `platform_settings` is readable by every signed-in user, so it must never hold secrets (only the image ceilings today).
+
+**11.6 Profiles and retention.** `profiles.id` references `auth.users` with RESTRICT, so a user with a profile cannot be hard-deleted. This follows "never remove historical records"; the account-deletion and retention procedure remains blocked on the legal review (R-17, DEL-1).

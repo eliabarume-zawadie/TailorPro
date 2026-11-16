@@ -200,3 +200,18 @@ Each migration ships with: tests, a rollback note (expand/contract pattern; dest
 - Idempotency: replaying the same operation twice yields one row.
 - Image-count and size limit triggers.
 - Subscription expiry changes status but deletes nothing.
+
+---
+
+## Appendix A. As built at Checkpoint A (migrations M1 to M3)
+
+Source of truth is `supabase/migrations/`. Differences from the logical design above:
+- **Migrations:** `20261116100000_m1_identity_tenancy`, `20261116100100_m2_plans_settings`, `20261116100200_m3_business_functions`. Currency is a column on `businesses` in M1; its foreign key to `currencies` is added in M2.
+- **Tables present:** `profiles`, `businesses`, `business_members`, `platform_admins`, `audit_logs`, `currencies`, `platform_settings`, `subscription_plans`, `subscriptions`. Not yet present: everything from M4 onward, `subscription_payments`, `support_access_grants`, `devices`, `sync_*`.
+- **Plans** `free`, `solo`, `shop` are seeded with empty limits and `limits_approved = false` (R-15). A new workspace gets a `free` subscription with status `active`.
+- **`platform_settings`** seeds only the approved image ceilings (5 MB, 5 per order).
+- **`businesses.id` is the idempotency key** for registration (client-generated UUID); there is no operation ledger until M6.
+- **Optimistic concurrency:** `version` increments on every update (`private.touch_row`); `update_business` requires the version the caller read and raises `PT409` on mismatch.
+- **Audit:** `audit_logs` is insert-only (triggers reject UPDATE, DELETE and TRUNCATE); diffs hold names of changed fields, never values such as phone or email.
+- **Revision 2 items** (`ZERO_BUDGET_REVIEW.md` section 8.2) not yet applicable: the `private.current_user_id()` wrapper (helpers call `auth.uid()` directly for now), the `export_jobs` deferral (no table), the reminder RPC.
+- **Rollback notes** are in each migration header. The ERD export is due at the end of Phase 1.

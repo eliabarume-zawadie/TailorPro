@@ -1,0 +1,33 @@
+{
+  "name": "tailorpro",
+  "version": "0.1.0",
+  "description": "TailorPro",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:start": "supabase start -x studio,imgproxy,edge-runtime,logflare,vector,realtime,storage-api,mailpit",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:test": "supabase test db",
+    "test:integration": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eliabarume-zawadie/TailorPro.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/eliabarume-zawadie/TailorPro/issues"
+  },
+  "homepage": "https://github.com/eliabarume-zawadie/TailorPro#readme",
+  "private": "true",
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "supabase": "^3.1.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.0"
+  }
+}
