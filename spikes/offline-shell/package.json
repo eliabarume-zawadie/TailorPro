@@ -1,0 +1,22 @@
+{
+  "name": "tailorpro-spike-offline-shell",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "build": "next build && node scripts/make-sw.mjs",
+    "serve": "node scripts/serve.mjs",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "dexie": "4.4.7",
+    "next": "16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.1",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.6.0"
+  }
+}
