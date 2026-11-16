@@ -1,0 +1,19 @@
+{
+  "name": "gateway-cpu",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "hono": "^4.13.18",
+    "jose": "^6.2.17"
+  },
+  "devDependencies": {
+    "wrangler": "^4.163.0"
+  }
+}

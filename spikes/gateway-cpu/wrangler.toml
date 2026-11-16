@@ -1,0 +1,8 @@
+name = "gw-spike"
+main = "worker.mjs"
+compatibility_date = "2026-01-01"
+[vars]
+JWKS_URL = "http://127.0.0.1:54321/auth/v1/.well-known/jwks.json"
+
+[observability]
+enabled = false
