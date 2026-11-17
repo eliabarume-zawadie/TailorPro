@@ -210,3 +210,15 @@ Pricing for the business (plan prices charged to tailors) is outside this docume
 | A5 | SMS cost and abuse (SMS pumping) | `SECURITY.md` §3 |
 | A6 | PWA install and storage-eviction differences on iOS | Android Chrome is primary support target; iOS best-effort (decision R-12) |
 | A7 | Long-term cost if one Supabase project per environment is paid | Free tier for staging; revisit before pilot |
+
+
+---
+
+## 9. As built in Phase 1 (supersedes the earlier paid-plan text where they differ)
+- **Hosting:** Next.js 16 static export (`output: 'export'`, trailing slashes) served as static assets (Cloudflare in staging/production, a Node stand-in locally); no Next.js server and no route handlers (Z-1, AD-2). The authenticated app is a client-rendered shell.
+- **Auth:** Google and emailed 6-digit code through Supabase Auth behind `AuthAdapter` (`src/auth`). No passwords, no SMS (Z-2).
+- **Writes:** `SECURITY DEFINER` functions with their own authorization (approved 2026-11-17; `SECURITY.md` 11.2). The browser calls them through PostgREST RPC with the user's token; no gateway Worker yet (decision D3).
+- **Offline:** generated service worker (`scripts/sw.template.js`) precaches the shell; Dexie stores the account cache (`src/data`); account loading is stale-while-revalidate; a new worker waits for the user (`src/pwa`). Customers, orders and the outbox arrive with their phases; the sync engine is Phase 5.
+- **Layering in practice:** UI (`app`, `src/ui`) calls hooks and the auth provider; rules live in `src/domain` (Zod schemas, activity labels) and mirror database rules, verified by shared test vectors; data access is in `src/data` and `src/auth`.
+- **Build pipeline:** `next build`, then `scripts/make-headers.mjs` (policy), then `scripts/make-sw.mjs` (worker with a content-hashed cache name).
+- **Not built:** gateway Worker, customers and later tables, sync endpoints, storage, staff invitations, subscription limits, business-settings screen, web app manifest and install prompt.

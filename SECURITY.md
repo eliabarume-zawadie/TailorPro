@@ -189,7 +189,7 @@ Cross-tenant R/W/U/D on all tables · FK cross-reference · function-level autho
 
 Open risk: a 6-digit code has 1,000,000 values. The per-IP verification limit and the 10-minute lifetime make guessing impractical for one address, but a distributed attacker is not modelled. Revisit with hosted limits and CAPTCHA if abuse appears (AUTH-5).
 
-**12.3 Session storage trade-off.** The session (access and refresh tokens) is stored in the browser's `localStorage` so the app opens offline. Any cross-site scripting bug would expose it. Mitigations in place: React escapes all rendered text (tested: markup in business fields renders as text and does not run); no raw HTML rendering anywhere; the client holds only the public URL and anon key; no inline event handlers. Still to do (Checkpoint C): a Content Security Policy on the hosting layer, and a re-test of XSS payloads in every new field.
+**12.3 Session storage trade-off.** The session (access and refresh tokens) is stored in the browser's `localStorage` so the app opens offline. Any cross-site scripting bug would expose it. Mitigations in place: React escapes all rendered text (tested: markup in business fields renders as text and does not run); no raw HTML rendering anywhere; the client holds only the public URL and anon key; no inline event handlers. A strict Content Security Policy now limits what can run (section 14); XSS payloads must still be re-tested in every new field.
 
 **12.4 Google sign-in.** Uses PKCE. The redirect to Google is tested (local dummy client id). **A real Google login has not been tested**: it needs the owner-created OAuth client (manual checklist in `TESTING.md`).
 
@@ -216,3 +216,20 @@ Status: **draft, nothing built.** There is no self-service recovery code and no 
 5. The old sessions are revoked.
 
 Parameters needing your decision: waiting period (72 h proposed), who is the operator while the team is one person, where the case log is kept until the Phase 6 audit tooling exists, and whether SMS or WhatsApp is acceptable for the phone check at zero cost. Counsel should review this under R-17. The procedure also reflects a known weakness: it depends on a human, so it is slow and open to social engineering. Encouraging every owner to link Google as well as email (so a lost mailbox is recoverable) is the strongest mitigation and is planned for the Phase 6 settings.
+
+---
+
+## 14. Browser security controls as built (Phase 1, Checkpoint C)
+
+**14.1 Content Security Policy.** Generated at build by `scripts/make-headers.mjs` into `out/_headers` (Cloudflare static assets format). Scripts are allowed only from the app's own origin and by the SHA-256 hash of each page's few inline scripts: there is no `unsafe-inline` and no `unsafe-eval`. Also: `default-src 'self'`, `style-src 'self'`, `img-src 'self'`, `font-src 'self'`, `connect-src 'self'` plus the API origin only, `worker-src 'self'`, `frame-ancestors 'none'`, `base-uri 'none'`, `form-action 'self'`, `object-src 'none'`. Because hashes change with the app, the headers are regenerated on every build.
+Tested in a real browser (`tests/e2e/security.spec.ts`): the whole journey produces zero violations; injected inline scripts and inline event handlers are blocked, including on a page served from the offline cache.
+
+**14.2 Other headers.** `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` disabling camera, microphone, geolocation and payment, `Strict-Transport-Security`, `no-cache` on pages and on `sw.js`, one-year immutable caching only for hashed build assets.
+
+**14.3 What the service worker may cache.** Only the app shell. It ignores every cross-origin request (the API) and every non-GET request, so authenticated data and storage URLs are never cached by it. The only locally stored business data is the Dexie cache (business, profile, recent activity), cleared on sign-out. Pages are cached under the address the policy is attached to, so an offline copy keeps its policy.
+
+**14.4 What is stored on the device.** The session tokens in `localStorage` (section 12.3) and the Dexie cache. Both are removed on sign-out, including when signing out offline. A lost or shared phone still exposes whatever is cached until the user signs out; the planned PIN lock (R-10) arrives with the offline engine in Phase 5.
+
+**14.5 Hosted-build guard.** `scripts/staging-env.mjs` stops a hosted build whose public key is actually a secret key or whose API address is local or not HTTPS, and never prints a key.
+
+**14.6 Known limits.** Unverified on hosted Cloudflare (headers are applied by a local stand-in server that mimics the file format; the first real deployment must be checked with `curl -I`). The policy has not been tested in browsers other than desktop Chromium. No `report-uri` collection exists, so violations on users' phones are invisible to us. CSRF is not applicable (no cookies carry authority; the API takes a bearer token), but any future cookie use must revisit this.

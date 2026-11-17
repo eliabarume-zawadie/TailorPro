@@ -214,4 +214,4 @@ Source of truth is `supabase/migrations/`. Differences from the logical design a
 - **Optimistic concurrency:** `version` increments on every update (`private.touch_row`); `update_business` requires the version the caller read and raises `PT409` on mismatch.
 - **Audit:** `audit_logs` is insert-only (triggers reject UPDATE, DELETE and TRUNCATE); diffs hold names of changed fields, never values such as phone or email.
 - **Revision 2 items** (`ZERO_BUDGET_REVIEW.md` section 8.2) not yet applicable: the `private.current_user_id()` wrapper (helpers call `auth.uid()` directly for now), the `export_jobs` deferral (no table), the reminder RPC.
-- **Rollback notes** are in each migration header. The ERD export is due at the end of Phase 1.
+- **Rollback notes** are in each migration header. The **ERD is `docs/erd.md`**, generated from the live database by `npm run docs:erd`; `tests/integration/erd.test.ts` fails if it goes stale.

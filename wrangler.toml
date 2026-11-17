@@ -1,0 +1,9 @@
+# Cloudflare static hosting for the TailorPro app (Z-1). Assets only: no Worker code, so no CPU limits apply to page loads.
+# Real deployments need the owner's Cloudflare login (npx wrangler login). See DEPLOYMENT.md.
+name = "tailorpro-staging"
+compatibility_date = "2026-01-01"
+
+[assets]
+directory = "./out"
+# Unknown addresses get the exported 404 page. Security headers and caching come from out/_headers (scripts/make-headers.mjs).
+not_found_handling = "404-page"

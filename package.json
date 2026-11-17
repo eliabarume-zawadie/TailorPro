@@ -15,7 +15,9 @@
     "build": "node scripts/local-env.mjs && next build && node scripts/make-headers.mjs && node scripts/make-sw.mjs",
     "e2e": "npm run build && playwright test",
     "lint": "eslint app src tests",
-    "build:app": "next build && node scripts/make-headers.mjs && node scripts/make-sw.mjs"
+    "build:app": "next build && node scripts/make-headers.mjs && node scripts/make-sw.mjs",
+    "docs:erd": "node scripts/erd.mjs",
+    "deploy:staging": "node scripts/staging-env.mjs && npm run build:app && wrangler deploy"
   },
   "repository": {
     "type": "git",
@@ -45,7 +47,8 @@
     "jsdom": "^31.0.1",
     "supabase": "^3.1.0",
     "typescript": "^5.9.3",
-    "vitest": "^5.1.0"
+    "vitest": "^5.1.0",
+    "wrangler": "^4.164.0"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.119.0",
