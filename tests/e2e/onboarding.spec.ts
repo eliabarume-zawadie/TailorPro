@@ -1,36 +1,9 @@
 // Phase 1 acceptance (PHASE1_PLAN section 5, items 1 and 4): sign in, register a business, land on the dashboard.
 // Real Google sign-in cannot be automated. These tests use the email one-time-code path against the local stack,
 // and a manual checklist covers Google (TESTING.md).
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test } from '@playwright/test';
 import { ANON, API, seedUserWithBusiness, waitForCode } from '../integration/helpers';
-
-const freshEmail = (l: string) => `${l}-${crypto.randomUUID().slice(0, 8)}@example.test`;
-
-async function signInWithCode(page: Page, email: string) {
-  const t0 = Date.now() - 1000;
-  await page.goto('/');
-  await expect(page).toHaveURL(/\/sign-in\/$/);
-  await page.getByLabel('Email address').fill(email);
-  await page.getByRole('button', { name: 'Send sign-in code' }).click();
-  const code = await waitForCode(email, t0);
-  await page.getByLabel('6-digit code').fill(code);
-  await page.getByRole('button', { name: 'Sign in' }).click();
-}
-
-async function accessToken(page: Page) {
-  return page.evaluate(() => {
-    const k = Object.keys(localStorage).find((x) => x.startsWith('sb-') && x.endsWith('-auth-token'));
-    return k ? (JSON.parse(localStorage.getItem(k)!) as { access_token: string }).access_token : null;
-  });
-}
-
-async function fillBusiness(page: Page, over: Partial<Record<'name' | 'owner' | 'phone' | 'location', string>> = {}) {
-  await page.getByLabel('Business name').fill(over.name ?? 'Banda Tailoring');
-  await page.getByLabel('Your name').fill(over.owner ?? 'Amina Banda');
-  await page.getByLabel('Phone number').fill(over.phone ?? '+265 999 123 456');
-  await page.getByLabel('Location').fill(over.location ?? 'Area 25, Lilongwe');
-  await page.getByLabel('Business type').selectOption('individual_tailor');
-}
+import { accessToken, fillBusiness, freshEmail, signInWithCode } from './helpers';
 
 test('new user: sign in with an emailed code, register a business, reach the dashboard, stay signed in, sign out', async ({ page }) => {
   const email = freshEmail('e2e');
@@ -52,6 +25,8 @@ test('new user: sign in with an emailed code, register a business, reach the das
   await page.getByRole('button', { name: 'Create business' }).dblclick(); // a double tap must not create two businesses
   await expect(page).toHaveURL(/\/app\/$/);
   await expect(page.getByRole('heading', { name: 'Banda Tailoring' })).toBeVisible();
+  await expect(page.getByText('Individual tailor in Area 25, Lilongwe')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
 
   // exactly one business exists for this user
   const token = await accessToken(page);
@@ -78,6 +53,7 @@ test('returning user with a business goes straight to the dashboard', async ({ p
   await signInWithCode(page, email);
   await expect(page).toHaveURL(/\/app\/$/);
   await expect(page.getByRole('heading', { name: 'Phiri and Sons' })).toBeVisible();
+  await expect(page.getByText('Tailoring shop in Blantyre')).toBeVisible();
 });
 
 test('a wrong code is refused with a clear message and the user can try again', async ({ page }) => {

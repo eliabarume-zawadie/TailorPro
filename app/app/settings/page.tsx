@@ -5,14 +5,15 @@ import { getSupabase } from '../../../src/auth/client';
 import { profileSchema, toUpdateProfileArgs } from '../../../src/domain/profile';
 import { t, type MessageKey } from '../../../src/i18n/en';
 import { Banner, Button, TextField } from '../../../src/ui/components';
+import { useToast } from '../../../src/ui/toast';
 
 export default function Settings() {
   const { state, reload } = useAuthState();
+  const toast = useToast();
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [errors, setErrors] = useState<{ fullName?: string; phone?: string }>({});
   const [busy, setBusy] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [failed, setFailed] = useState(false);
   const inFlight = useRef(false);
   const loaded = useRef(false);
@@ -32,7 +33,7 @@ export default function Settings() {
   async function save(e: FormEvent) {
     e.preventDefault();
     if (inFlight.current) return;
-    setSaved(false); setFailed(false);
+    setFailed(false);
     const parsed = profileSchema.safeParse({ fullName, phone });
     if (!parsed.success) {
       const next: { fullName?: string; phone?: string } = {};
@@ -46,7 +47,7 @@ export default function Settings() {
       const { error } = await getSupabase().rpc('update_profile', toUpdateProfileArgs(parsed.data, locale));
       if (error) { setFailed(true); return; }
       setPhone(parsed.data.phone ?? '');
-      setSaved(true);
+      toast.show(t('settings.saved'));
       await reload();
     } catch { setFailed(true); } finally { inFlight.current = false; setBusy(false); }
   }
@@ -55,13 +56,12 @@ export default function Settings() {
     <main>
       <h1>{t('settings.title')}</h1>
       <p className="subtitle">{t('settings.signedInAs', { email: state.session.user.email ?? '' })}</p>
-      <form className="card" onSubmit={save} noValidate>
+      <form className="sheet" onSubmit={save} noValidate>
         <h2>{t('settings.profileTitle')}</h2>
-        {saved ? <Banner kind="success">{t('settings.saved')}</Banner> : null}
         {failed ? <Banner kind="error">{t('errors.saveFailed')}</Banner> : null}
         <TextField id="fullName" label={t('settings.fullName')} value={fullName} onChange={setFullName} error={errors.fullName} autoComplete="name" />
         <TextField id="phone" label={t('settings.phone')} value={phone} onChange={setPhone} error={errors.phone} type="tel" inputMode="tel" autoComplete="tel" />
-        <Button type="submit" disabled={busy}>{busy ? t('settings.saving') : t('settings.saveProfile')}</Button>
+        <Button type="submit" busy={busy}>{busy ? t('settings.saving') : t('settings.saveProfile')}</Button>
       </form>
     </main>
   );

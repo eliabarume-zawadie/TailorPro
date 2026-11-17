@@ -82,7 +82,7 @@ export default function RegisterPage() {
     <main>
       <h1>{t('register.title')}</h1>
       <p className="subtitle">{t('register.subtitle')}</p>
-      <form className="card" onSubmit={submit} noValidate>
+      <form className="sheet" onSubmit={submit} noValidate>
         {formError ? <Banner kind="error">{formError}</Banner> : null}
         <TextField id="name" label={t('register.businessName')} value={form.name} onChange={set('name')} error={errors.name} autoComplete="organization" />
         <TextField id="ownerName" label={t('register.ownerName')} value={ownerName} onChange={set('ownerName')} error={errors.ownerName} autoComplete="name" />
@@ -93,7 +93,7 @@ export default function RegisterPage() {
         <TextField id="currency" label={t('register.currency')} value="MWK" onChange={() => undefined} readOnly />
         <SelectField id="businessType" label={t('register.businessType')} value={form.businessType} onChange={set('businessType')} error={errors.businessType}
           options={[{ value: '', label: t('register.businessTypeChoose') }, ...businessTypes.map((v) => ({ value: v, label: t(`register.types.${v}` as MessageKey) }))]} />
-        <Button type="submit" disabled={busy}>{busy ? t('register.submitting') : t('register.submit')}</Button>
+        <Button type="submit" busy={busy}>{busy ? t('register.submitting') : t('register.submit')}</Button>
       </form>
     </main>
   );

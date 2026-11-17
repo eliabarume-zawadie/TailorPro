@@ -1,7 +1,8 @@
 'use client';
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
+import { useId, type ButtonHTMLAttributes, type ReactNode } from 'react';
 
-// Minimal form primitives for Checkpoint B. The full design system (tokens, states, documentation) is Checkpoint C1.
+// TailorPro design system, building blocks. Tokens live in app/globals.css (colour, type, space, focus).
+// Principles: 48 px touch targets, status in words (never colour alone), plain verbs, one control radius.
 
 interface FieldBase { id: string; label: string; error?: string; hint?: string }
 
@@ -46,12 +47,40 @@ export function SelectField(props: FieldBase & { value: string; onChange: (v: st
   );
 }
 
-export function Button({ variant = 'primary', ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'link' }) {
-  return <button {...rest} className={`btn btn-${variant}`} />;
+/** `busy` disables the button and announces it, so a double tap cannot submit twice. */
+export function Button({ variant = 'primary', busy, disabled, ...rest }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'link'; busy?: boolean }) {
+  return <button {...rest} disabled={disabled || busy} aria-busy={busy ? true : undefined} className={`btn btn-${variant}`} />;
 }
 
 export function Banner({ kind, children }: { kind: 'error' | 'info' | 'success'; children: ReactNode }) {
   return <div className={`banner banner-${kind}`} role={kind === 'error' ? 'alert' : 'status'}>{children}</div>;
+}
+
+/** Status shown as a word plus a dot. The word carries the meaning; colour only reinforces it. */
+export function Badge({ tone, children }: { tone: 'online' | 'offline' | 'neutral'; children: ReactNode }) {
+  return <span className={`badge badge-${tone}`}><span className="badge-dot" aria-hidden="true" />{children}</span>;
+}
+
+/** An empty screen is an invitation to act: say what belongs here and offer the next step when there is one. */
+export function EmptyState({ title, body, action }: { title: string; body: string; action?: ReactNode }) {
+  const id = useId();
+  return (
+    <section className="empty" aria-labelledby={id}>
+      <h2 id={id}>{title}</h2>
+      <p>{body}</p>
+      {action}
+    </section>
+  );
+}
+
+/** A seam: the stitched line that divides sections. */
+export function Stitch() {
+  return <hr className="stitch" aria-hidden="true" />;
+}
+
+/** The measuring tape under the top of every page. Decorative; it unrolls once on load. */
+export function TapeRule() {
+  return <div className="tape" aria-hidden="true" />;
 }
 
 export function Spinner({ label }: { label: string }) {

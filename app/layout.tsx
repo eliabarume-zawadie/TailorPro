@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { AuthProvider } from '../src/auth/AuthProvider';
+import { TapeRule } from '../src/ui/components';
+import { ToastProvider } from '../src/ui/toast';
 import './globals.css';
 
 export const metadata: Metadata = { title: 'TailorPro', description: 'Customers, measurements, orders and payments for tailors.' };
@@ -10,7 +12,10 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <ToastProvider>
+          <TapeRule />
+          <AuthProvider>{children}</AuthProvider>
+        </ToastProvider>
       </body>
     </html>
   );

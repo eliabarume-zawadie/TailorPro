@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import type { AuthSession } from './adapter';
 import { getAuth, getSupabase } from './client';
 
-export interface Workspace { id: string; name: string; version: number; role: 'owner' | 'staff' }
+export interface Workspace { id: string; name: string; version: number; role: 'owner' | 'staff'; location: string; businessType: string; currency: string }
 export interface Profile { fullName: string; phone: string | null; email: string | null; locale: string }
 
 export type AuthState =
@@ -14,13 +14,14 @@ export type AuthState =
 interface AuthContextValue { state: AuthState; reload: () => Promise<void>; signOut: () => Promise<void> }
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-type MemberRow = { role: 'owner' | 'staff'; businesses: { id: string; name: string; version: number } | { id: string; name: string; version: number }[] | null };
+type BusinessRow = { id: string; name: string; version: number; location: string; business_type: string; currency: string };
+type MemberRow = { role: 'owner' | 'staff'; businesses: BusinessRow | BusinessRow[] | null };
 
 // Reads the caller's workspace and profile. Row level security guarantees only their own rows come back.
 async function loadAccount(userId: string): Promise<{ workspace: Workspace | null; profile: Profile | null }> {
   const sb = getSupabase();
   const [members, profile] = await Promise.all([
-    sb.from('business_members').select('role, businesses(id, name, version)').eq('status', 'active').order('created_at').limit(1),
+    sb.from('business_members').select('role, businesses(id, name, version, location, business_type, currency)').eq('status', 'active').order('created_at').limit(1),
     sb.from('profiles').select('full_name, phone_e164, email, locale').eq('id', userId).maybeSingle(),
   ]);
   if (members.error) throw members.error;
@@ -28,7 +29,7 @@ async function loadAccount(userId: string): Promise<{ workspace: Workspace | nul
   const row = (members.data as unknown as MemberRow[])[0];
   const b = row ? (Array.isArray(row.businesses) ? row.businesses[0] : row.businesses) : null;
   return {
-    workspace: row && b ? { id: b.id, name: b.name, version: b.version, role: row.role } : null,
+    workspace: row && b ? { id: b.id, name: b.name, version: b.version, role: row.role, location: b.location, businessType: b.business_type, currency: b.currency } : null,
     profile: profile.data ? { fullName: profile.data.full_name, phone: profile.data.phone_e164, email: profile.data.email, locale: profile.data.locale } : null,
   };
 }

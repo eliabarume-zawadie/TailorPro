@@ -1,15 +1,21 @@
 'use client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { useAuthState } from '../../src/auth/AuthProvider';
 import { t } from '../../src/i18n/en';
 import { Banner, Button, Spinner } from '../../src/ui/components';
 
+const links = [
+  { href: '/app/', label: 'nav.dashboard' },
+  { href: '/app/settings/', label: 'nav.settings' },
+] as const;
+
 // The authenticated shell. Signed-out visitors are sent to sign-in; signed-in users without a business to registration.
 export default function AppShell({ children }: { children: ReactNode }) {
   const { state, reload, signOut } = useAuthState();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (state.status === 'signed-out') router.replace('/sign-in/');
@@ -25,15 +31,19 @@ export default function AppShell({ children }: { children: ReactNode }) {
       </main>
     );
   }
+  const here = pathname.endsWith('/') ? pathname : `${pathname}/`;
   return (
     <>
       <header className="topbar">
-        <nav className="topbar-inner" aria-label={t('nav.main')}>
+        <div className="topbar-inner">
           <span className="brand">{t('app.name')}</span>
-          <Link href="/app/">{t('nav.dashboard')}</Link>
-          <Link href="/app/settings/">{t('nav.settings')}</Link>
           <Button type="button" variant="secondary" onClick={() => void signOut()}>{t('nav.signOut')}</Button>
-        </nav>
+          <nav className="topnav" aria-label={t('nav.main')}>
+            {links.map((l) => (
+              <Link key={l.href} href={l.href} aria-current={here === l.href ? 'page' : undefined}>{t(l.label)}</Link>
+            ))}
+          </nav>
+        </div>
       </header>
       {children}
     </>

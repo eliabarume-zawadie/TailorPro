@@ -48,7 +48,7 @@ export const en = {
     fixErrors: 'Please fix the highlighted fields.',
   },
   dashboard: {
-    welcome: 'Welcome to TailorPro',
+    about: '{type} in {location}',
     emptyTitle: 'Your workspace is ready',
     emptyBody: 'Customers, measurements, orders and payments will appear here as you add them. Your business details are saved.',
     workspaceError: 'We could not load your business. Check your connection and try again.',

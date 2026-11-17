@@ -42,24 +42,24 @@ export default function SignInPage() {
     <main>
       <h1>{t('signIn.title')}</h1>
       <p className="subtitle">{t('signIn.subtitle')}</p>
-      <div className="card">
+      <div className="stack">
         {error ? <Banner kind="error">{error}</Banner> : null}
         {info ? <Banner kind="info">{info}</Banner> : null}
         {step === 'email' ? (
           <>
-            <Button type="button" variant="secondary" onClick={google} disabled={busy}>{t('signIn.google')}</Button>
+            <Button type="button" variant="secondary" onClick={google} busy={busy}>{t('signIn.google')}</Button>
             <div className="divider" aria-hidden="true">{t('signIn.or')}</div>
             <form onSubmit={sendCode} noValidate className="stack">
               <TextField id="email" label={t('signIn.emailLabel')} type="email" value={email} onChange={setEmail} autoComplete="email" inputMode="email" />
-              <Button type="submit" disabled={busy}>{busy ? t('signIn.sending') : t('signIn.sendCode')}</Button>
+              <Button type="submit" busy={busy}>{busy ? t('signIn.sending') : t('signIn.sendCode')}</Button>
             </form>
           </>
         ) : (
           <form onSubmit={verify} noValidate className="stack">
             <p>{t('signIn.codeSent', { email })}</p>
             <TextField id="code" label={t('signIn.codeLabel')} value={code} onChange={(v) => setCode(v.replace(/\D/g, '').slice(0, 6))} autoComplete="one-time-code" inputMode="numeric" maxLength={6} />
-            <Button type="submit" disabled={busy || code.length !== 6}>{busy ? t('signIn.verifying') : t('signIn.submit')}</Button>
-            <Button type="button" variant="secondary" onClick={resend} disabled={busy}>{t('signIn.resend')}</Button>
+            <Button type="submit" busy={busy} disabled={code.length !== 6}>{busy ? t('signIn.verifying') : t('signIn.submit')}</Button>
+            <Button type="button" variant="secondary" onClick={resend} busy={busy}>{t('signIn.resend')}</Button>
             <Button type="button" variant="link" onClick={() => { setStep('email'); setError(null); setInfo(null); }}>{t('signIn.useOtherEmail')}</Button>
           </form>
         )}
