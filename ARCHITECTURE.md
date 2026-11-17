@@ -61,6 +61,8 @@ flowchart LR
 ## 3. Key architectural decisions
 
 ### AD-1 Writes go through server-side functions, not direct table writes
+> **Refinement approved 2026-11-17:** the write functions are `SECURITY DEFINER` (empty `search_path`) and perform their own authorization, because an invoker function cannot work without direct write grants. See `SECURITY.md` section 11.2. The text below that says `SECURITY INVOKER` is superseded.
+
 All tenant-data mutations are executed by Postgres functions (`SECURITY INVOKER`, called with the **user's** JWT so RLS still applies), invoked from Next.js route handlers. The `authenticated` role gets `SELECT` (RLS-filtered) and `EXECUTE` on those functions, but **no direct INSERT/UPDATE/DELETE grants** on tenant tables.
 - Business invariants (payment rules, status transitions, snapshot immutability, plan limits) live in functions, triggers and constraints, never only in the frontend (CLAUDE.md §5).
 - Defense in depth: even if a function has a bug, RLS still restricts to the member's workspace.

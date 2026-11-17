@@ -16,7 +16,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  database-and-integration:
+  test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,14 +24,19 @@ jobs:
         with: { node-version: 22, cache: npm }
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm audit --audit-level=high
-      # Local Supabase stack in Docker (Postgres, Auth, REST). Dummy OAuth values are written for tests only.
+      # Local Supabase stack in Docker (Postgres, Auth, REST, mail catcher). Dummy OAuth values are written for tests only.
       - run: |
           printf 'SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=ci-dummy.apps.googleusercontent.com\nSUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=ci-dummy-secret\n' > supabase/.env
           npm run db:start
       - name: Database tests (pgTAP: RLS, grants, functions)
         run: npm run db:test
-      - name: Integration tests (Auth -> JWT -> REST -> Postgres)
+      - name: Unit and integration tests (Auth -> JWT -> REST -> Postgres)
         run: npm run test:integration
+      - name: Install browser for end-to-end tests
+        run: npx playwright install --with-deps chromium
+      - name: End-to-end tests (static export + local stack)
+        run: npm run e2e
       - if: always()
         run: npm run db:stop

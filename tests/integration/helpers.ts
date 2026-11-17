@@ -36,3 +36,34 @@ export const rpc = (token: string | null, fn: string, args: Record<string, unkno
 export function jwtHeader(token: string): { alg: string; kid?: string } {
   return JSON.parse(Buffer.from(token.split('.')[0] as string, 'base64url').toString());
 }
+
+// ---- local mail catcher (Mailpit, started by `npm run db:start`) ----
+const MAIL_API = 'http://127.0.0.1:54324/api/v1';
+/** Waits for a message to `email` and returns the 6-digit sign-in code in it. */
+export async function waitForCode(email: string, notBefore = 0): Promise<string> {
+  for (let i = 0; i < 40; i++) {
+    const list = (await (await fetch(`${MAIL_API}/messages`)).json()) as { messages: { ID: string; To: { Address: string }[]; Created: string }[] };
+    const mine = list.messages.filter((m) => m.To.some((t) => t.Address.toLowerCase() === email.toLowerCase()) && Date.parse(m.Created) >= notBefore);
+    if (mine[0]) {
+      const msg = (await (await fetch(`${MAIL_API}/message/${mine[0].ID}`)).json()) as { Text: string };
+      const code = /\b(\d{6})\b/.exec(msg.Text)?.[1];
+      if (code) return code;
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(`no sign-in email with a 6-digit code arrived for ${email}`);
+}
+
+/** Creates a confirmed user (password grant, so no email is sent and no resend window starts) and registers a business for them. */
+export async function seedUserWithBusiness(label: string, businessName: string): Promise<{ email: string; businessId: string }> {
+  const email = `${label}-${crypto.randomUUID().slice(0, 8)}@example.test`;
+  const password = `Pw-${crypto.randomUUID()}`;
+  const svc = { apikey: SERVICE, authorization: `Bearer ${SERVICE}`, 'content-type': 'application/json' };
+  const created = await parse<{ id: string }>(await fetch(`${API}/auth/v1/admin/users`, { method: 'POST', headers: svc, body: JSON.stringify({ email, password, email_confirm: true }) }));
+  if (created.status >= 300) throw new Error(`seed user failed: ${created.status}`);
+  const tok = await parse<{ access_token: string }>(await fetch(`${API}/auth/v1/token?grant_type=password`, { method: 'POST', headers: { apikey: ANON, 'content-type': 'application/json' }, body: JSON.stringify({ email, password }) }));
+  const businessId = crypto.randomUUID();
+  const r = await rpc(tok.body.access_token, 'create_business', { p_id: businessId, p_name: businessName, p_owner_name: 'Seed Owner', p_phone: '+265999000111', p_email: null, p_location: 'Blantyre', p_country: 'MW', p_currency: 'MWK', p_business_type: 'tailoring_shop' });
+  if (r.status !== 200) throw new Error(`seed business failed: ${r.status} ${JSON.stringify(r.body)}`);
+  return { email, businessId };
+}

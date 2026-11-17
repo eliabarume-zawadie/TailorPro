@@ -162,7 +162,7 @@ site_url = "http://127.0.0.1:3000"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://127.0.0.1:3000"]
+additional_redirect_urls = ["http://127.0.0.1:3000/auth/callback/", "http://localhost:3000/auth/callback/"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.
@@ -233,11 +233,19 @@ secure_password_change = false
 # they signed in with a one-time password, magic link, or recovery link.
 # require_current_password = true
 # Controls the minimum amount of time that must pass before sending another signup confirmation or password reset email.
-max_frequency = "1s"
+max_frequency = "60s"
 # Number of characters used in the email OTP.
 otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
-otp_expiry = 3600
+otp_expiry = 600
+
+# Sign-in code emails (both templates carry the 6-digit code, not a link)
+[auth.email.template.magic_link]
+subject = "Your TailorPro sign-in code"
+content_path = "./supabase/templates/code.html"
+[auth.email.template.confirmation]
+subject = "Your TailorPro sign-in code"
+content_path = "./supabase/templates/code.html"
 
 # Use a production-ready SMTP server
 # [auth.email.smtp]

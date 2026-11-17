@@ -159,7 +159,7 @@ Cross-tenant R/W/U/D on all tables · FK cross-reference · function-level autho
 
 **11.1 Closed-by-default privileges (spike finding, now enforced).** Supabase grants `anon` and `authenticated` ALL privileges (including TRUNCATE) on new `public` tables and EXECUTE on new functions. Migration M1 revokes these as defaults for objects created by `postgres`, and every migration grants explicitly. `supabase/tests/database/00_catalog.test.sql` fails if any table or function is more open than intended, including a probe that creates a new table and function and checks they are closed.
 
-**11.2 AD-1 refinement, needs your confirmation.** `ARCHITECTURE.md` AD-1 says write functions are `SECURITY INVOKER` so RLS still applies, and also that `authenticated` has no write grants on tenant tables. Those two cannot both hold: an invoker function needs table write privileges, and for registration no membership exists yet. As built, the write functions are `SECURITY DEFINER` with an empty `search_path`, and each one performs its own authorization first (caller from `auth.uid()`, then `private.has_permission`), validates input, and writes an audit entry. The intent of AD-1 is preserved (no direct writes, business rules in the database, cross-tenant tests). The cost is that RLS is not a second barrier inside these functions, so every new function needs its own cross-tenant tests. Tell me if you want a different approach.
+**11.2 AD-1 refinement. APPROVED by the product owner on 2026-11-17.** `ARCHITECTURE.md` AD-1 says write functions are `SECURITY INVOKER` so RLS still applies, and also that `authenticated` has no write grants on tenant tables. Those two cannot both hold: an invoker function needs table write privileges, and for registration no membership exists yet. As built, the write functions are `SECURITY DEFINER` with an empty `search_path`, and each one performs its own authorization first (caller from `auth.uid()`, then `private.has_permission`), validates input, and writes an audit entry. The intent of AD-1 is preserved (no direct writes, business rules in the database, cross-tenant tests). The cost is that RLS is not a second barrier inside these functions, so every new function needs its own cross-tenant tests. 
 
 **11.3 Error mapping.** `28000` not authenticated, `42501` forbidden (HTTP 403), `22023` invalid input (HTTP 400), `PT409` stale version (HTTP 409).
 
@@ -168,3 +168,51 @@ Cross-tenant R/W/U/D on all tables · FK cross-reference · function-level autho
 **11.5 Reference data visibility.** `platform_settings` is readable by every signed-in user, so it must never hold secrets (only the image ceilings today).
 
 **11.6 Profiles and retention.** `profiles.id` references `auth.users` with RESTRICT, so a user with a profile cannot be hard-deleted. This follows "never remove historical records"; the account-deletion and retention procedure remains blocked on the legal review (R-17, DEL-1).
+
+---
+
+## 12. Authentication as built (Phase 1, Checkpoint B)
+
+**12.1 Sign-in methods.** Google (primary, Z-2) and a 6-digit emailed code (second path). There are no passwords in TailorPro. Both go through Supabase Auth behind the `AuthAdapter` interface (`src/auth/adapter.ts`), so the app never depends on the provider directly.
+
+**12.2 Email-code controls (configured and tested locally; hosted values must be re-applied in the dashboard, tracked for C6).**
+
+| Control | Local setting | Evidence |
+|---|---|---|
+| Resend limit per address | 60 seconds (`auth.email.max_frequency`) | integration test: second request returns `rate_limited`; e2e test shows the wait message |
+| Code lifetime | 10 minutes (`otp_expiry = 600`) | configured; **expiry itself is not tested** (would need a 10-minute wait) |
+| Code length | 6 digits | tested (code extracted from the real email) |
+| Wrong or reused code | rejected | integration and e2e tests |
+| Verification attempts per IP | 30 per 5 minutes (Supabase `token_verifications`) | **configured at the Supabase default, not tested** (a test would lock the shared local IP out of other tests for 5 minutes) |
+| Email sends per hour | Supabase `email_sent` | the local value is not representative; the **hosted free-tier limit must be read from the dashboard and confirmed** before pilot |
+| Sign-ups / sign-ins per IP | 30 per 5 minutes (default) | configured at default, not tested |
+
+Open risk: a 6-digit code has 1,000,000 values. The per-IP verification limit and the 10-minute lifetime make guessing impractical for one address, but a distributed attacker is not modelled. Revisit with hosted limits and CAPTCHA if abuse appears (AUTH-5).
+
+**12.3 Session storage trade-off.** The session (access and refresh tokens) is stored in the browser's `localStorage` so the app opens offline. Any cross-site scripting bug would expose it. Mitigations in place: React escapes all rendered text (tested: markup in business fields renders as text and does not run); no raw HTML rendering anywhere; the client holds only the public URL and anon key; no inline event handlers. Still to do (Checkpoint C): a Content Security Policy on the hosting layer, and a re-test of XSS payloads in every new field.
+
+**12.4 Google sign-in.** Uses PKCE. The redirect to Google is tested (local dummy client id). **A real Google login has not been tested**: it needs the owner-created OAuth client (manual checklist in `TESTING.md`).
+
+**12.5 Error messages.** The adapter maps provider errors to five kinds (`invalid_code`, `rate_limited`, `invalid_email`, `network`, `unknown`) and never surfaces the provider's raw message, which can echo the email address.
+
+---
+
+## 13. Account recovery procedure — DRAFT FOR PRODUCT-OWNER APPROVAL (R-9)
+
+Status: **draft, nothing built.** There is no self-service recovery code and no support tooling in Phase 1. TailorPro has no passwords, so "forgot password" does not exist.
+
+| Situation | What happens |
+|---|---|
+| Signs in with Google and loses the Google account | Google's own recovery. TailorPro cannot and does not reset a Google account |
+| Signs in with an email code and still has the mailbox | Request a new code; nothing to recover |
+| Signs in with an email code and **has lost the mailbox** | Manual recovery below |
+| Wants to switch from one login method to another | Sign in with the old method, then (Phase 6 settings) link the new one. Not built yet |
+
+**Proposed manual recovery for a lost mailbox** (owner accounts only; staff are recovered by their owner):
+1. The requester contacts support. Support never changes a login email on request alone.
+2. **Identity checks, all required:** (a) business name, location and approximate registration date; (b) a call or message from the **phone number on file** for the business (`businesses.phone`), confirmed by a code sent by SMS or WhatsApp to that number outside TailorPro; (c) two recent, non-sensitive facts only the owner would know (for example the month the business registered and the plan). Support never asks for, and never reads out, customer details or measurements.
+3. **Waiting period: 72 hours**, during which the old email and the phone on file are notified that a recovery is in progress and can cancel it.
+4. After the period, support changes the login email through the Supabase dashboard (the only place this is possible; no application code can change another user's login email) and records the case: date, requester, checks passed, operator.
+5. The old sessions are revoked.
+
+Parameters needing your decision: waiting period (72 h proposed), who is the operator while the team is one person, where the case log is kept until the Phase 6 audit tooling exists, and whether SMS or WhatsApp is acceptable for the phone check at zero cost. Counsel should review this under R-17. The procedure also reflects a known weakness: it depends on a human, so it is slow and open to social engineering. Encouraging every owner to link Google as well as email (so a lost mailbox is recoverable) is the strongest mitigation and is planned for the Phase 6 settings.
