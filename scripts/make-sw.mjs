@@ -16,12 +16,17 @@ const files = [];
   }
 })(out);
 
+// A page is requested and served as /route/, and its security headers are attached to that address. Cache it under the
+// same address so the offline copy carries the same policy. Everything else is cached under its file path.
+const canonical = (f) => (f.endsWith('/index.html') ? f.slice(0, -'index.html'.length) : f);
+const urls = files.map(canonical);
+
 const hash = createHash('sha256');
 for (const f of files) hash.update(f).update(readFileSync(join(out, f)));
 const version = hash.digest('hex').slice(0, 12);
 
 const sw = readFileSync('scripts/sw.template.js', 'utf8')
   .replace("'__CACHE__'", JSON.stringify(`shell-${version}`))
-  .replace('__PRECACHE__', JSON.stringify(files));
+  .replace('__PRECACHE__', JSON.stringify(urls));
 writeFileSync(join(out, 'sw.js'), sw);
 console.log('sw.js written:', files.length, 'precached files, version', version);

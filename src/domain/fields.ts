@@ -1,5 +1,9 @@
 import { z } from 'zod';
 
+// The content security policy forbids eval. Zod 4 would otherwise compile validators with new Function and the browser
+// would report a violation on every page that validates. Validation here is tiny, so the interpreted path costs nothing.
+z.config({ jitless: true });
+
 // Field rules shared by the domain schemas. They mirror the database helper functions
 // (private.require_text, private.normalise_phone, private.normalise_email). Messages are i18n catalog keys.
 

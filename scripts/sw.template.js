@@ -39,9 +39,8 @@ self.addEventListener('fetch', (event) => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     const path = exportedPath(url.pathname);
-    // exported routes are stored as /route/index.html but requested as /route/
-    const key = path.endsWith('/') ? path + 'index.html' : path;
-    const hit = (await cache.match(key)) || (await cache.match(key, { ignoreSearch: true }));
+    // pages are cached under the address they are served from (/route/), so they keep that address's security headers
+    const hit = (await cache.match(path)) || (await cache.match(path, { ignoreSearch: true }));
     if (hit) return hit;
     try {
       return await fetch(req);

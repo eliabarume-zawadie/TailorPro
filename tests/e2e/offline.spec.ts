@@ -5,24 +5,10 @@ import { createServer, type Server } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize } from 'node:path';
 import { seedUserWithBusiness } from '../integration/helpers';
-import { signInWithCode } from './helpers';
+import { isControlled, signInWithCode, swReady } from './helpers';
 
-const isControlled = (page: Page) => page.evaluate(() => !!navigator.serviceWorker?.controller);
-
-/**
- * Waits until the service worker controls the page. The worker installs in the background on the first visit, and
- * the app registers it again on every page load, so if the first install did not finish (for example the page was
- * reloaded mid-install) the next visit completes it. The helper models that one extra visit and says so when it was
- * needed, so a recurring install problem is visible in the test output instead of hidden.
- */
 async function controlled(page: Page) {
-  try {
-    await expect.poll(() => isControlled(page), { timeout: 10_000 }).toBe(true);
-  } catch {
-    console.log('NOTE: service worker was not in control after 10 s; loading the page once more, as a returning visitor would');
-    await page.reload();
-    await expect.poll(() => isControlled(page), { timeout: 20_000 }).toBe(true);
-  }
+  await expect.poll(() => isControlled(page), { timeout: 20_000 }).toBe(true);
 }
 
 /** Signs in online, saves a profile name, and waits until the service worker controls the page. */
@@ -37,7 +23,8 @@ async function signInAndWarm(page: Page, label: string, business: string) {
   await expect(page.getByText('Profile saved.')).toBeVisible();
   await page.goto('/app/');
   await expect(page.getByRole('heading', { name: business })).toBeVisible();
-  await page.reload(); // the first load installs the worker; a reload puts the page under its control
+  await swReady(page);
+  await page.reload(); // the first load installs the worker; once it is ready, a reload puts the page under its control
   await controlled(page);
   await expect(page.getByRole('heading', { name: business })).toBeVisible();
 }
@@ -112,6 +99,7 @@ test('the sign-in page itself opens offline for a first-time visitor who has loa
   const context = await browser.newContext();
   const page = await context.newPage();
   await page.goto('/sign-in/');
+  await swReady(page);
   await page.reload();
   await controlled(page);
   await goOffline(context);
@@ -194,6 +182,7 @@ test('a new version waits for the user: banner appears, nothing reloads by itsel
   const { email } = await seedUserWithBusiness('update', 'Update Flow Shop');
   await signInWithCode(page, email);
   await expect(page.getByRole('heading', { name: 'Update Flow Shop' })).toBeVisible();
+  await swReady(page);
   await page.reload();
   await controlled(page);
   await page.evaluate(() => { (window as unknown as { __marker: string }).__marker = 'old page still here'; });

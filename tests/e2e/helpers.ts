@@ -30,3 +30,14 @@ export async function fillBusiness(page: Page, over: Partial<Record<'name' | 'ow
   await page.getByLabel('Business type').selectOption('individual_tailor');
 }
 
+
+/**
+ * Waits until the service worker is active. Reloading BEFORE this can race the worker's one-time claim of open pages:
+ * a page created just after the claim starts uncontrolled (a real visitor's next navigation fixes it; a test should not
+ * depend on luck). After this resolves, a reload is controlled.
+ */
+export async function swReady(page: Page) {
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+}
+
+export const isControlled = (page: Page) => page.evaluate(() => !!navigator.serviceWorker?.controller);
