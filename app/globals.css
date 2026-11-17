@@ -133,5 +133,10 @@ input[aria-invalid='true'], select[aria-invalid='true'] { border: 2.5px solid va
 .activity li { padding: var(--s3) 0; border-top: 2px dashed var(--hairline); display: flex; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
 .activity time { color: var(--ink-muted); font-size: var(--t-sm); }
 
+.status-row { grid-column: 1 / -1; padding: var(--s2) 0 var(--s1); }
+.update-bar { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; padding: var(--s2) var(--s4); background: var(--ink); color: #fff; font-weight: 650; }
+.update-bar .btn { width: auto; min-height: var(--target); background: var(--tape); color: var(--ink); }
+.update-bar .btn:hover:not(:disabled) { background: #ffd034; }
+
 @media (min-width: 48rem) { :root { --measure: 44rem; } main { padding-top: var(--s6); } }
 @media (prefers-reduced-motion: reduce) { .tape { animation: none; } }

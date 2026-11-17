@@ -3,8 +3,9 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, type ReactNode } from 'react';
 import { useAuthState } from '../../src/auth/AuthProvider';
+import { useOnlineStatus } from '../../src/data/online-status';
 import { t } from '../../src/i18n/en';
-import { Banner, Button, Spinner } from '../../src/ui/components';
+import { Badge, Banner, Button, Spinner } from '../../src/ui/components';
 
 const links = [
   { href: '/app/', label: 'nav.dashboard' },
@@ -16,6 +17,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const { state, reload, signOut } = useAuthState();
   const router = useRouter();
   const pathname = usePathname();
+  const online = useOnlineStatus();
 
   useEffect(() => {
     if (state.status === 'signed-out') router.replace('/sign-in/');
@@ -38,6 +40,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <div className="topbar-inner">
           <span className="brand">{t('app.name')}</span>
           <Button type="button" variant="secondary" onClick={() => void signOut()}>{t('nav.signOut')}</Button>
+          {!online || state.stale ? <div className="status-row"><Badge tone="offline">{t(online ? 'status.stale' : 'status.offline')}</Badge></div> : null}
           <nav className="topnav" aria-label={t('nav.main')}>
             {links.map((l) => (
               <Link key={l.href} href={l.href} aria-current={here === l.href ? 'page' : undefined}>{t(l.label)}</Link>

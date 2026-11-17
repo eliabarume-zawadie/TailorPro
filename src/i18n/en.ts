@@ -2,6 +2,10 @@
 // Validation errors from src/domain use these keys as their messages.
 export const en = {
   app: { name: 'TailorPro', loading: 'Loading…' },
+  activity: { businessCreated: 'Business created', businessUpdated: 'Business details updated', other: 'Other activity' },
+  update: { ready: 'A new version is ready.', reload: 'Reload to update', otherTab: 'TailorPro was updated in another tab.', reloadNow: 'Reload' },
+  status: { offline: 'Offline. Showing saved data.', stale: 'Cannot reach the server. Showing saved data.' },
+  notFound: { title: 'This page could not be found.', body: 'Check the address, or go back to your dashboard.', home: 'Go to dashboard' },
   nav: { dashboard: 'Dashboard', settings: 'Settings', signOut: 'Sign out', main: 'Main navigation' },
   signIn: {
     title: 'Sign in to TailorPro',
@@ -49,6 +53,7 @@ export const en = {
   },
   dashboard: {
     about: '{type} in {location}',
+    recentActivity: 'Recent activity',
     emptyTitle: 'Your workspace is ready',
     emptyBody: 'Customers, measurements, orders and payments will appear here as you add them. Your business details are saved.',
     workspaceError: 'We could not load your business. Check your connection and try again.',

@@ -27,6 +27,8 @@ test('new user: sign in with an emailed code, register a business, reach the das
   await expect(page.getByRole('heading', { name: 'Banda Tailoring' })).toBeVisible();
   await expect(page.getByText('Individual tailor in Area 25, Lilongwe')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
+  await expect(page.getByRole('heading', { name: 'Recent activity' })).toBeVisible();
+  await expect(page.getByText('Business created')).toBeVisible();
 
   // exactly one business exists for this user
   const token = await accessToken(page);

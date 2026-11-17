@@ -12,9 +12,10 @@
     "test:integration": "vitest run",
     "typecheck": "tsc --noEmit",
     "dev": "next dev",
-    "build": "node scripts/local-env.mjs && next build",
+    "build": "node scripts/local-env.mjs && next build && node scripts/make-sw.mjs",
     "e2e": "npm run build && playwright test",
-    "lint": "eslint app src tests"
+    "lint": "eslint app src tests",
+    "build:app": "next build && node scripts/make-sw.mjs"
   },
   "repository": {
     "type": "git",
